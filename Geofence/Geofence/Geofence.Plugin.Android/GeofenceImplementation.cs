@@ -1,20 +1,20 @@
-using Geofence.Plugin.Abstractions;
 using System;
 using System.Collections.Generic;
-using Android.Util;
-using Android.Gms.Common.Apis;
-using Android.Gms.Common;
+using System.Linq;
 using Android.App;
 using Android.Content;
+using Android.Gms.Common;
+using Android.Gms.Common.Apis;
+using Android.Gms.Location;
+using Android.Locations;
 using Android.OS;
-using System.Linq;
-using Android.Support.V4.App;
-using Android.Media;
-using Java.Lang;
-using Android.Text;
-using System.Runtime.Remoting.Messaging;
+using Android.Provider;
+using Geofence.Plugin.Abstractions;
 using Java.Interop;
-using System.Collections.ObjectModel;
+using Debug = System.Diagnostics.Debug;
+using Exception = Java.Lang.Exception;
+using IGeofence = Geofence.Plugin.Abstractions.IGeofence;
+using Object = Java.Lang.Object;
 
 namespace Geofence.Plugin
 {
@@ -22,7 +22,7 @@ namespace Geofence.Plugin
     /// Implementation for Feature
     /// </summary>
     /// 
-    public class GeofenceImplementation : Java.Lang.Object, IGeofence, IGoogleApiClientConnectionCallbacks, IGoogleApiClientOnConnectionFailedListener, IResultCallback
+    public class GeofenceImplementation : Object, IGeofence, GoogleApiClient.IConnectionCallbacks, GoogleApiClient.IOnConnectionFailedListener, IResultCallback
     {
 
       internal const string GeoReceiverAction = "ACTION_RECEIVE_GEOFENCE";
@@ -35,7 +35,7 @@ namespace Geofence.Plugin
 
       private PendingIntent mGeofencePendingIntent;
 
-      private IGoogleApiClient mGoogleApiClient;
+      private GoogleApiClient mGoogleApiClient;
 
       // Defines the allowable request types
 	  internal enum RequestType { Add, Update, Delete, Clear, Default }
@@ -73,8 +73,8 @@ namespace Geofence.Plugin
 
                   //var intent = new Intent(Android.App.Application.Context, typeof(GeofenceBroadcastReceiver));
                   // intent.SetAction(string.Format("{0}.{1}", Android.App.Application.Context.PackageName, GeoReceiverAction));
-                  var intent = new Intent(string.Format("{0}.{1}", Android.App.Application.Context.PackageName, GeoReceiverAction));
-                  mGeofencePendingIntent = PendingIntent.GetBroadcast(Android.App.Application.Context, 0, intent, PendingIntentFlags.UpdateCurrent);
+                  var intent = new Intent(string.Format("{0}.{1}", Application.Context.PackageName, GeoReceiverAction));
+                  mGeofencePendingIntent = PendingIntent.GetBroadcast(Application.Context, 0, intent, PendingIntentFlags.UpdateCurrent);
               }
               return mGeofencePendingIntent;
           }
@@ -86,10 +86,10 @@ namespace Geofence.Plugin
 	  {
 
           //Check if location services are enabled
-          if (!((Android.Locations.LocationManager)Android.App.Application.Context.GetSystemService(Context.LocationService)).IsProviderEnabled(Android.Locations.LocationManager.GpsProvider))
+          if (!((LocationManager)Application.Context.GetSystemService(Context.LocationService)).IsProviderEnabled(LocationManager.GpsProvider))
           {
               string message = string.Format("{0} - {1}", CrossGeofence.Id, "You need to enable Location Services");
-              System.Diagnostics.Debug.WriteLine(message);
+              Debug.WriteLine(message);
               CrossGeofence.GeofenceListener.OnError(message);
               return;
           }
@@ -101,7 +101,7 @@ namespace Geofence.Plugin
           if(IsMonitoring)
           { 
              StartMonitoring(Regions.Values.ToList());
-             System.Diagnostics.Debug.WriteLine(string.Format("{0} - {1}", CrossGeofence.Id, "Monitoring was restored"));
+             Debug.WriteLine("{0} - {1}", CrossGeofence.Id, "Monitoring was restored");
           }
           
          
@@ -177,7 +177,7 @@ namespace Geofence.Plugin
       
         internal void AddGeofenceResult(string identifier)
         {
-             mGeofenceResults.Add(identifier, new GeofenceResult()
+             mGeofenceResults.Add(identifier, new GeofenceResult
              {
                             RegionId = identifier,
                             Transition = GeofenceTransition.Unknown
@@ -211,7 +211,7 @@ namespace Geofence.Plugin
                     if(transitionTypes != 0)
                     {
 
-                        geofenceList.Add(new Android.Gms.Location.GeofenceBuilder()
+                        geofenceList.Add(new GeofenceBuilder()
                        .SetRequestId(region.Id)
                        .SetCircularRegion(region.Latitude, region.Longitude, (float)region.Radius)
                        .SetLoiteringDelay((int)region.StayedInThresholdDuration.TotalMilliseconds)
@@ -232,24 +232,24 @@ namespace Geofence.Plugin
                
                if(geofenceList.Count>0)
                {
-                   Android.Gms.Location.GeofencingRequest request = new Android.Gms.Location.GeofencingRequest.Builder().SetInitialTrigger(Android.Gms.Location.GeofencingRequest.InitialTriggerEnter).AddGeofences(geofenceList).Build();
+                   GeofencingRequest request = new GeofencingRequest.Builder().SetInitialTrigger(GeofencingRequest.InitialTriggerEnter).AddGeofences(geofenceList).Build();
 
-                   Android.Gms.Location.LocationServices.GeofencingApi.AddGeofences(mGoogleApiClient, request, GeofenceTransitionPendingIntent).SetResultCallback(this);
+                   LocationServices.GeofencingApi.AddGeofences(mGoogleApiClient, request, GeofenceTransitionPendingIntent).SetResultCallback(this);
 
                    CurrentRequestType = RequestType.Default;
                }
               
 
-            }catch(Java.Lang.Exception ex1)
+            }catch(Exception ex1)
             {
-                string message = string.Format("{0} - Error: {1}", CrossGeofence.Id, ex1.ToString());
-                System.Diagnostics.Debug.WriteLine(message);
+                string message = string.Format("{0} - Error: {1}", CrossGeofence.Id, ex1);
+                Debug.WriteLine(message);
                 CrossGeofence.GeofenceListener.OnError(message);
             }
             catch (System.Exception ex2)
             {
                 string message = string.Format("{0} - Error: {1}", CrossGeofence.Id, ex2.ToString());
-                System.Diagnostics.Debug.WriteLine(message);
+                Debug.WriteLine(message);
                 CrossGeofence.GeofenceListener.OnError(message);
             }
             
@@ -263,7 +263,7 @@ namespace Geofence.Plugin
         public void StopMonitoring(string regionIdentifier)
         {
 
-            StopMonitoring(new List<string>() { regionIdentifier });
+            StopMonitoring(new List<string> { regionIdentifier });
         }
 
         internal void OnMonitoringRemoval()
@@ -292,7 +292,7 @@ namespace Geofence.Plugin
             }
 
             //Stop Monitoring
-            Android.Gms.Location.LocationServices.GeofencingApi.RemoveGeofences(mGoogleApiClient, regionIdentifiers).SetResultCallback(this);
+            LocationServices.GeofencingApi.RemoveGeofences(mGoogleApiClient, regionIdentifiers).SetResultCallback(this);
 
             //Check if there are still regions
             OnMonitoringRemoval();
@@ -350,7 +350,7 @@ namespace Geofence.Plugin
             GeofenceStore.SharedInstance.RemoveAll();
             mRegions.Clear();
             mGeofenceResults.Clear();
-            Android.Gms.Location.LocationServices.GeofencingApi.RemoveGeofences(mGoogleApiClient, GeofenceTransitionPendingIntent).SetResultCallback(this);
+            LocationServices.GeofencingApi.RemoveGeofences(mGoogleApiClient, GeofenceTransitionPendingIntent).SetResultCallback(this);
             StopLocationUpdates();
             mGoogleApiClient.Disconnect();
             CrossGeofence.GeofenceListener.OnMonitoringStopped();
@@ -358,15 +358,15 @@ namespace Geofence.Plugin
 
         private void InitializeGoogleAPI()
         {
-            int queryResult = GoogleApiAvailability.Instance.IsGooglePlayServicesAvailable(Android.App.Application.Context);
+            int queryResult = GoogleApiAvailability.Instance.IsGooglePlayServicesAvailable(Application.Context);
 
             if (queryResult == ConnectionResult.Success)
             {
                 if(mGoogleApiClient==null)
                 {
-                    mGoogleApiClient = new GoogleApiClientBuilder(Android.App.Application.Context).AddApi(Android.Gms.Location.LocationServices.API).AddConnectionCallbacks(this).AddOnConnectionFailedListener(this).Build();
+                    mGoogleApiClient = new GoogleApiClient.Builder(Application.Context).AddApi(LocationServices.API).AddConnectionCallbacks(this).AddOnConnectionFailedListener(this).Build();
                     string message = string.Format("{0} - {1}", CrossGeofence.Id, "Google Play services is available.");
-                    System.Diagnostics.Debug.WriteLine(message);
+                    Debug.WriteLine(message);
                 }
 
                 if (!mGoogleApiClient.IsConnected)
@@ -380,7 +380,7 @@ namespace Geofence.Plugin
             {
             
                 string message = string.Format("{0} - {1}", CrossGeofence.Id, "Google Play services is unavailable.");
-                System.Diagnostics.Debug.WriteLine(message);
+                Debug.WriteLine(message);
                 CrossGeofence.GeofenceListener.OnError(message);
             }
         }
@@ -389,15 +389,15 @@ namespace Geofence.Plugin
         /// Google play connection failed handling
         /// </summary>
         /// <param name="result"></param>
-        public void OnConnectionFailed(Android.Gms.Common.ConnectionResult result)
+        public void OnConnectionFailed(ConnectionResult result)
         {
             int errorCode = result.ErrorCode;
             string message = string.Format("{0} - {1} {2}", CrossGeofence.Id, "Connection to Google Play services failed with error code ", errorCode);
-            System.Diagnostics.Debug.WriteLine(message);
+            Debug.WriteLine(message);
             CrossGeofence.GeofenceListener.OnError(message);
       
         }
-        internal void SetLastKnownLocation(Android.Locations.Location location)
+        internal void SetLastKnownLocation(Location location)
         {
              if(location!=null)
             {
@@ -421,7 +421,7 @@ namespace Geofence.Plugin
         public void OnConnected(Bundle connectionHint)
         {
 
-            Android.Locations.Location location=Android.Gms.Location.LocationServices.FusedLocationApi.GetLastLocation(mGoogleApiClient);
+            Location location=LocationServices.FusedLocationApi.GetLastLocation(mGoogleApiClient);
             SetLastKnownLocation(location);
 
             if (CurrentRequestType == RequestType.Add)
@@ -451,7 +451,7 @@ namespace Geofence.Plugin
         /// On Geofence Request Result
         /// </summary>
         /// <param name="result"></param>
-        public void OnResult(Java.Lang.Object result)
+        public void OnResult(Object result)
         {
             var res = result.JavaCast<IResult>();
           
@@ -460,8 +460,8 @@ namespace Geofence.Plugin
 
             switch (res.Status.StatusCode)
             {
-                case Android.Gms.Location.GeofenceStatusCodes.SuccessCache:
-                case Android.Gms.Location.GeofenceStatusCodes.Success:
+                case GeofenceStatusCodes.SuccessCache:
+                case GeofenceStatusCodes.Success:
                     if(CurrentRequestType==RequestType.Add)
                     {
                         message = string.Format("{0} - {1}", CrossGeofence.Id, "Successfully added Geofence.");
@@ -477,23 +477,23 @@ namespace Geofence.Plugin
                     }
                     
                     break;
-                case Android.Gms.Location.GeofenceStatusCodes.Error:
+                case GeofenceStatusCodes.Error:
                     message = string.Format("{0} - {1}", CrossGeofence.Id, "Error adding Geofence.");
                     break;
-                case Android.Gms.Location.GeofenceStatusCodes.GeofenceTooManyGeofences:
+                case GeofenceStatusCodes.GeofenceTooManyGeofences:
                     message = string.Format("{0} - {1}", CrossGeofence.Id, "Too many geofences.");
                     break;
-                case Android.Gms.Location.GeofenceStatusCodes.GeofenceTooManyPendingIntents:
+                case GeofenceStatusCodes.GeofenceTooManyPendingIntents:
                     message = string.Format("{0} - {1}", CrossGeofence.Id, "Too many pending intents.");
                     break;
-                case Android.Gms.Location.GeofenceStatusCodes.GeofenceNotAvailable:
+                case GeofenceStatusCodes.GeofenceNotAvailable:
                     message = string.Format("{0} - {1}", CrossGeofence.Id, "Geofence not available.");
                     break;
             }
 
-            System.Diagnostics.Debug.WriteLine(message);
+            Debug.WriteLine(message);
 
-            if (statusCode != Android.Gms.Location.GeofenceStatusCodes.Success && statusCode != Android.Gms.Location.GeofenceStatusCodes.SuccessCache && IsMonitoring)
+            if (statusCode != GeofenceStatusCodes.Success && statusCode != GeofenceStatusCodes.SuccessCache && IsMonitoring)
             {
                 StopMonitoringAllRegions();
 
@@ -509,7 +509,7 @@ namespace Geofence.Plugin
        public void OnConnectionSuspended(int cause)
        {
             string message = string.Format("{0} - {1} {2}", CrossGeofence.Id, "Connection to Google Play services suspended with error code ", cause);
-            System.Diagnostics.Debug.WriteLine(message);
+            Debug.WriteLine(message);
             CrossGeofence.GeofenceListener.OnError(message);
       }
 
@@ -528,7 +528,7 @@ namespace Geofence.Plugin
 
       internal void StartLocationUpdates()
       {
-          Android.Gms.Location.LocationRequest mLocationRequest = new Android.Gms.Location.LocationRequest();
+          LocationRequest mLocationRequest = new LocationRequest();
           mLocationRequest.SetInterval(CrossGeofence.LocationUpdatesInterval == 0 ? 30000 : CrossGeofence.LocationUpdatesInterval);
           mLocationRequest.SetFastestInterval(CrossGeofence.FastestLocationUpdatesInterval == 0 ? 5000 : CrossGeofence.FastestLocationUpdatesInterval);
           string priorityType="Balanced Power";
@@ -536,36 +536,36 @@ namespace Geofence.Plugin
           {
               case GeofencePriority.HighAccuracy:
                   priorityType="High Accuracy";
-                  mLocationRequest.SetPriority(Android.Gms.Location.LocationRequest.PriorityHighAccuracy);
+                  mLocationRequest.SetPriority(LocationRequest.PriorityHighAccuracy);
                   break;
               case GeofencePriority.LowAccuracy:
                   priorityType="Low Accuracy";
-                  mLocationRequest.SetPriority(Android.Gms.Location.LocationRequest.PriorityLowPower);
+                  mLocationRequest.SetPriority(LocationRequest.PriorityLowPower);
                   break;
               case GeofencePriority.LowestAccuracy:
                   priorityType="Lowest Accuracy";
-                  mLocationRequest.SetPriority(Android.Gms.Location.LocationRequest.PriorityNoPower);
+                  mLocationRequest.SetPriority(LocationRequest.PriorityNoPower);
                   break;
               case GeofencePriority.MediumAccuracy:
               case GeofencePriority.AcceptableAccuracy:
               default:
-                  mLocationRequest.SetPriority(Android.Gms.Location.LocationRequest.PriorityBalancedPowerAccuracy);
+                  mLocationRequest.SetPriority(LocationRequest.PriorityBalancedPowerAccuracy);
                   break;
           }
         
-          System.Diagnostics.Debug.WriteLine(string.Format("{0} - {1}: {2}", CrossGeofence.Id, "Priority set to",priorityType));
+          Debug.WriteLine("{0} - {1}: {2}", CrossGeofence.Id, "Priority set to", priorityType);
           //(Regions.Count == 0) ? (CrossGeofence.SmallestDisplacement==0?50 :CrossGeofence.SmallestDisplacement): Regions.Min(s => (float)s.Value.Radius)
           if(CrossGeofence.SmallestDisplacement>0)
           {
               mLocationRequest.SetSmallestDisplacement(CrossGeofence.SmallestDisplacement);
-              System.Diagnostics.Debug.WriteLine(string.Format("{0} - {1}: {2} meters", CrossGeofence.Id, "Location smallest displacement set to", CrossGeofence.SmallestDisplacement));
+              Debug.WriteLine("{0} - {1}: {2} meters", CrossGeofence.Id, "Location smallest displacement set to", CrossGeofence.SmallestDisplacement);
           }
      
-          Android.Gms.Location.LocationServices.FusedLocationApi.RequestLocationUpdates(mGoogleApiClient, mLocationRequest, GeofenceLocationListener.SharedInstance);
+          LocationServices.FusedLocationApi.RequestLocationUpdates(mGoogleApiClient, mLocationRequest, GeofenceLocationListener.SharedInstance);
       }
       internal void StopLocationUpdates()
       {
-          Android.Gms.Location.LocationServices.FusedLocationApi.RemoveLocationUpdates(mGoogleApiClient, GeofenceLocationListener.SharedInstance);
+          LocationServices.FusedLocationApi.RemoveLocationUpdates(mGoogleApiClient, GeofenceLocationListener.SharedInstance);
       }
 
      

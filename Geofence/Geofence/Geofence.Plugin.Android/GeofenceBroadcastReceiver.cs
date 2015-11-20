@@ -1,14 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
+using System.Diagnostics;
 using Android.App;
 using Android.Content;
-using Android.OS;
-using Android.Runtime;
-using Android.Views;
-using Android.Widget;
 using Android.Support.V4.Content;
 
 [assembly: UsesPermission(Name = "android.permission.WAKE_LOCK")]
@@ -20,7 +12,7 @@ namespace Geofence.Plugin
     /// Receive geofence updates
     /// </summary>
     [BroadcastReceiver]
-    [IntentFilter(new string[] { "@PACKAGE_NAME@.ACTION_RECEIVE_GEOFENCE" })]
+    [IntentFilter(new[] { "@PACKAGE_NAME@.ACTION_RECEIVE_GEOFENCE" })]
     public class GeofenceBroadcastReceiver : WakefulBroadcastReceiver
     {
         /// <summary>
@@ -30,7 +22,7 @@ namespace Geofence.Plugin
         /// <param name="intent"></param>
         public override void OnReceive(Context context, Intent intent)
         {
-            System.Diagnostics.Debug.WriteLine(string.Format("{0} - {1}",CrossGeofence.Id,"Region State Change Received"));
+            Debug.WriteLine("{0} - {1}", CrossGeofence.Id, "Region State Change Received");
             var serviceIntent = new Intent(context, typeof(GeofenceTransitionsIntentService));
             serviceIntent.AddFlags(ActivityFlags.IncludeStoppedPackages);
             serviceIntent.ReplaceExtras(intent.Extras);

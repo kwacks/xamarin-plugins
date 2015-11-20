@@ -1,14 +1,16 @@
-﻿using Android.App;
+﻿using System;
+using System.Collections.Generic;
+using Android.App;
 using Android.Content;
+using Android.Content.Res;
+using Android.Gms.Location;
 using Android.Media;
 using Android.OS;
 using Android.Support.V4.App;
 using Geofence.Plugin.Abstractions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Debug = System.Diagnostics.Debug;
+using Exception = Java.Lang.Exception;
+using IGeofence = Android.Gms.Location.IGeofence;
 
 namespace Geofence.Plugin
 {
@@ -19,7 +21,7 @@ namespace Geofence.Plugin
     [Service]
     public class GeofenceTransitionsIntentService : IntentService
     {
-        static int NotificationId = 0;
+        static int NotificationId;
         const int  NotificationMaxId = 6;
         /// <summary>
         /// Handles geofence intent arrival
@@ -27,15 +29,15 @@ namespace Geofence.Plugin
         /// <param name="intent"></param>
         protected override void OnHandleIntent(Intent intent)
         {
-            Context context = Android.App.Application.Context;
+            Context context = Application.Context;
             Bundle extras = intent.Extras;
-            Android.Gms.Location.GeofencingEvent geofencingEvent = Android.Gms.Location.GeofencingEvent.FromIntent(intent);
+            GeofencingEvent geofencingEvent = GeofencingEvent.FromIntent(intent);
 
             if (geofencingEvent.HasError)
             {
-                string errorMessage = Android.Gms.Location.GeofenceStatusCodes.GetStatusCodeString(geofencingEvent.ErrorCode);
+                string errorMessage = GeofenceStatusCodes.GetStatusCodeString(geofencingEvent.ErrorCode);
                 string message = string.Format("{0} - {1}", CrossGeofence.Id, errorMessage);
-                System.Diagnostics.Debug.WriteLine(message);
+                Debug.WriteLine(message);
                 CrossGeofence.GeofenceListener.OnError(message);
             }
 
@@ -43,13 +45,13 @@ namespace Geofence.Plugin
             int geofenceTransition = geofencingEvent.GeofenceTransition;
 
             // Get the geofences that were triggered. A single event can trigger multiple geofences.
-            IList<Android.Gms.Location.IGeofence> triggeringGeofences = geofencingEvent.TriggeringGeofences;
+            IList<IGeofence> triggeringGeofences = geofencingEvent.TriggeringGeofences;
 
             GeofenceTransition gTransition = GeofenceTransition.Unknown;
 
-            ((GeofenceImplementation)CrossGeofence.Current).CurrentRequestType = Geofence.Plugin.GeofenceImplementation.RequestType.Update;
+            ((GeofenceImplementation)CrossGeofence.Current).CurrentRequestType = GeofenceImplementation.RequestType.Update;
 
-            foreach (Android.Gms.Location.IGeofence geofence in triggeringGeofences)
+            foreach (IGeofence geofence in triggeringGeofences)
             {
 
                 if (!CrossGeofence.Current.GeofenceResults.ContainsKey(geofence.RequestId))
@@ -83,11 +85,11 @@ namespace Geofence.Plugin
                         break;
                     default:
                         string message = string.Format("{0} - {1}", CrossGeofence.Id, "Invalid transition type");
-                        System.Diagnostics.Debug.WriteLine(message);
+                        Debug.WriteLine(message);
                         gTransition = GeofenceTransition.Unknown;
                         break;
                 }
-                System.Diagnostics.Debug.WriteLine(string.Format("{0} - Transition: {1}", CrossGeofence.Id, gTransition));
+                Debug.WriteLine("{0} - Transition: {1}", CrossGeofence.Id, gTransition);
                 if (CrossGeofence.Current.GeofenceResults[geofence.RequestId].Transition != gTransition )
                 {
                
@@ -170,7 +172,7 @@ namespace Geofence.Plugin
             {
 
                 NotificationCompat.Builder builder = null;
-                Context context = Android.App.Application.Context;
+                Context context = Application.Context;
 
                 if (CrossGeofence.SoundUri == null)
                 {
@@ -195,10 +197,10 @@ namespace Geofence.Plugin
                     }
 
                 }
-                catch (Android.Content.Res.Resources.NotFoundException ex)
+                catch (Resources.NotFoundException ex)
                 {
                     CrossGeofence.IconResource = context.ApplicationInfo.Icon;
-                    System.Diagnostics.Debug.WriteLine(ex.ToString());
+                    Debug.WriteLine(ex.ToString());
                 }
 
                 Intent resultIntent = context.PackageManager.GetLaunchIntentForPackage(context.PackageName);
@@ -218,7 +220,7 @@ namespace Geofence.Plugin
                         .SetContentText(message); // the message to display.
 
 
-                NotificationManager notificationManager = (NotificationManager)context.GetSystemService(Context.NotificationService);
+                NotificationManager notificationManager = (NotificationManager)context.GetSystemService(NotificationService);
 
                 if (NotificationId >= NotificationMaxId)
                 {
@@ -228,13 +230,13 @@ namespace Geofence.Plugin
                 notificationManager.Notify(NotificationId++, builder.Build());
 
             }
-            catch (Java.Lang.Exception ex)
+            catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(string.Format("{0} - {1}", CrossGeofence.Id, ex.ToString()));
+                Debug.WriteLine("{0} - {1}", CrossGeofence.Id, ex);
             }
             catch (System.Exception ex1)
             {
-                System.Diagnostics.Debug.WriteLine(string.Format("{0} - {1}", CrossGeofence.Id, ex1.ToString()));
+                Debug.WriteLine("{0} - {1}", CrossGeofence.Id, ex1);
             }
            
         }

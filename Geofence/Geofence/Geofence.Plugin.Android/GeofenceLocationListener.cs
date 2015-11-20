@@ -1,9 +1,7 @@
-﻿using Geofence.Plugin.Abstractions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
+using Android.Locations;
+using Java.Lang;
+using ILocationListener = Android.Gms.Location.ILocationListener;
 
 namespace Geofence.Plugin
 {
@@ -11,7 +9,7 @@ namespace Geofence.Plugin
     /// GeofenceLocationListener class
     /// Listens to location updates
     /// </summary>
-    public class GeofenceLocationListener : Java.Lang.Object,Android.Gms.Location.ILocationListener
+    public class GeofenceLocationListener : Object,ILocationListener
     {
         private static GeofenceLocationListener sharedInstance = new GeofenceLocationListener();
 
@@ -24,10 +22,10 @@ namespace Geofence.Plugin
         {
 
         }
-        void Android.Gms.Location.ILocationListener.OnLocationChanged(Android.Locations.Location location)
+        void ILocationListener.OnLocationChanged(Location location)
         {
             //Location Updated
-            System.Diagnostics.Debug.WriteLine(string.Format("{0} - {1}: {2},{3}",CrossGeofence.Id,"Location Update",location.Latitude,location.Longitude));
+            Debug.WriteLine("{0} - {1}: {2},{3}", CrossGeofence.Id, "Location Update", location.Latitude, location.Longitude);
             ((GeofenceImplementation)CrossGeofence.Current).SetLastKnownLocation(location);
             
         }

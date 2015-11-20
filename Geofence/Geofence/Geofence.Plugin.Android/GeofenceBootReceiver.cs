@@ -1,10 +1,6 @@
-﻿using Android.App;
+﻿using System.Diagnostics;
+using Android.App;
 using Android.Content;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Geofence.Plugin
 {
@@ -23,7 +19,7 @@ namespace Geofence.Plugin
         /// <param name="intent"></param>
         public override void OnReceive(Context context, Intent intent)
         {
-            System.Diagnostics.Debug.WriteLine(string.Format("{0} - {1}", CrossGeofence.Id, "Boot Received"));
+            Debug.WriteLine("{0} - {1}", CrossGeofence.Id, "Boot Received");
             var geofenceInstance= CrossGeofence.Current;
         }
     }

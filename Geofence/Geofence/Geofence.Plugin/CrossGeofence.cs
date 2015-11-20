@@ -1,8 +1,7 @@
-﻿using Geofence.Plugin.Abstractions;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
-using System.Linq;
+using System.Threading;
+using Geofence.Plugin.Abstractions;
 
 namespace Geofence.Plugin
 {
@@ -11,7 +10,7 @@ namespace Geofence.Plugin
   /// </summary>
   public class CrossGeofence
   {
-    static Lazy<IGeofence> Implementation = new Lazy<IGeofence>(() => CreateGeofence(), System.Threading.LazyThreadSafetyMode.PublicationOnly);
+    static Lazy<IGeofence> Implementation = new Lazy<IGeofence>(() => CreateGeofence(), LazyThreadSafetyMode.PublicationOnly);
     /// <summary>
     /// Checks if plugin is initialized
     /// </summary>
@@ -86,7 +85,7 @@ namespace Geofence.Plugin
       get
       {
         //Should always initialize plugin before use
-        if (!CrossGeofence.IsInitialized)
+        if (!IsInitialized)
         {
            throw GeofenceNotInitializedException();
         }
@@ -114,7 +113,7 @@ namespace Geofence.Plugin
     }
     internal static GeofenceNotInitializedException GeofenceNotInitializedException()
     {
-        string description = string.Format("{0} - {1}", CrossGeofence.Id, "Plugin is not initialized. Should initialize before use with CrossGeofence Initialize method. Example:  CrossGeofence.Initialize<CrossGeofenceListener>()");
+        string description = string.Format("{0} - {1}", Id, "Plugin is not initialized. Should initialize before use with CrossGeofence Initialize method. Example:  CrossGeofence.Initialize<CrossGeofenceListener>()");
 
         return new GeofenceNotInitializedException(description);
     }

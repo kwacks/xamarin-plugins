@@ -1,9 +1,9 @@
 ﻿using Android.App;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Android.Content;
+using Android.Locations;
+using Android.OS;
+using Debug = System.Diagnostics.Debug;
+using ILocationListener = Android.Gms.Location.ILocationListener;
 
 namespace Geofence.Plugin
 {
@@ -11,7 +11,7 @@ namespace Geofence.Plugin
     /// GeofenceLocationService
     /// </summary>
     [Service]
-    public class GeofenceLocationService : Service, Android.Gms.Location.ILocationListener
+    public class GeofenceLocationService : Service, ILocationListener
     {
         /// <summary>
         /// Location Service OnCreate method
@@ -30,7 +30,7 @@ namespace Geofence.Plugin
         /// </summary>
         /// <param name="intent"></param>
         /// <returns></returns>
-        public override Android.OS.IBinder OnBind(Android.Content.Intent intent)
+        public override IBinder OnBind(Intent intent)
         {
           return null;
         }
@@ -40,10 +40,10 @@ namespace Geofence.Plugin
         /// Location changed method
         /// </summary>
         /// <param name="location"></param>
-        public void OnLocationChanged(Android.Locations.Location location)
+        public void OnLocationChanged(Location location)
         {
             //Location Updated
-            System.Diagnostics.Debug.WriteLine(string.Format("{0} - {1}: {2},{3}", CrossGeofence.Id, "Location Update", location.Latitude, location.Longitude));
+            Debug.WriteLine("{0} - {1}: {2},{3}", CrossGeofence.Id, "Location Update", location.Latitude, location.Longitude);
        
         }
     }

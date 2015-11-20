@@ -1,10 +1,11 @@
-﻿using Android.Content;
-using Geofence.Plugin.Abstractions;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Android.App;
+using Android.Content;
+using Geofence.Plugin.Abstractions;
+using Exception = Java.Lang.Exception;
 
 namespace Geofence.Plugin
 {
@@ -27,7 +28,7 @@ namespace Geofence.Plugin
 		/// </summary>
 		private GeofenceStore ()
 		{
-            mPrefs = Android.App.Application.Context.GetSharedPreferences(GeofenceStoreId, FileCreationMode.Private);
+            mPrefs = Application.Context.GetSharedPreferences(GeofenceStoreId, FileCreationMode.Private);
 		}
  
 
@@ -138,9 +139,9 @@ namespace Geofence.Plugin
                 // Commit the changes
                 prefs.Commit();
 
-            }catch(Java.Lang.Exception ex)
+            }catch(Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(string.Format("{0} - Error: {1}", CrossGeofence.Id, ex.ToString()));
+                Debug.WriteLine("{0} - Error: {1}", CrossGeofence.Id, ex);
             }
             
         }
